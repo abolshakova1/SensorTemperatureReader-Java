@@ -1,0 +1,62 @@
+import java.util.List; 
+import java.util.concurrent.*;
+import java.util.ArrayList;
+
+public class SensorTemperatureReader {
+
+    private static final int TIMEOUT_SECONDS = 10;
+
+    public static List<SensorData> readSensorTemperatures(List<String> sensorUrls) {
+        ExecutorService executor = Executors.newCachedThreadPool();
+        List<Future<SensorData>> futures = new ArrayList<>();
+
+        for (String url: sensorUrls) {
+            futures.add(executor.submit(() -> readSensorTemperature(url)));
+        }
+
+        List<SensorData> sensorDataList = new ArrayList<>();
+        for (Future<SensorData> future : futures) {
+            try {
+                SensorData sensorData = future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                sensorDataList.add(sensorData);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                System.err.println("Error reading sensor temperature: " + e.getMessage());
+            }
+        }
+        executor.shutdown();
+        return sensorDataList;
+    }
+
+    private static SensorData readSensorTemperature(String url) {
+        return new SensorData("5d316ee8-a785-4e87-91d8-06f901c98a88", 23.4);
+    }
+
+    public static void cancelReading() {     
+    }
+
+    public static void main(String[] args) {
+        List<String> sensorUrls = List.of("http://sensor1.com", "http://sensor2.com", "http://sensor3.com");
+        List<SensorData> sensorDataList = SensorTemperatureReader.readSensorTemperatures(sensorUrls);
+        for (SensorData sensorData : sensorDataList) {
+            System.out.println(sensorData);
+        }
+    }
+
+    static class SensorData {
+        private String sensorId;
+        private double temperatureC;
+
+        public SensorData(String sensorId, double temperatureC) {
+            this.sensorId = sensorId;
+            this.temperatureC = temperatureC;
+        }
+
+        @Override
+        public String toString() {
+            return "SensorData{" +
+                    "sensorId='" + sensorId + '\'' +
+                    ", temperatureC=" + temperatureC +
+                    '}';
+        }
+    }
+}
